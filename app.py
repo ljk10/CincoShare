@@ -28,7 +28,7 @@ PARENT_FOLDER_ID = '1vczJrfJq_TemIeaaAoFiBptGeBedimE0'
 ADMIN_EMAIL = "louiskavalam4@gmail.com"
 
 # 3. YOUR NGROK DOMAIN
-MY_DOMAIN = "https://messiah-nonemploying-compendiously.ngrok-free.dev"
+MY_DOMAIN = "https://cincoshare.onrender.com"
 
 # --- SETTINGS ---
 CLIENT_SECRETS_FILE = os.path.join(pathlib.Path(__file__).parent, "client_secret.json")
