@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CincoShare Dashboard</title>
+    <style>
+        /* --- CORE STYLES --- */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f4f6f8;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+            position: relative;
+            z-index: 1;
+        }
+
+        h1 { margin-top: 0; color: #333; }
+        p { color: #666; margin-bottom: 2rem; }
+
+        /* Upload Box */
+        .upload-box {
+            border: 2px dashed #ccc;
+            padding: 30px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: border-color 0.3s;
+            margin-bottom: 20px;
+            display: block;
+        }
+        .upload-box:hover { border-color: #007bff; background-color: #f9fbfd; }
+        .upload-icon { font-size: 32px; display: block; margin-bottom: 10px; }
+
+        input[type="file"] { display: none; }
+
+        /* Button */
+        .btn {
+            background-color: #007bff;
+            color: white;
+            padding: 14px 24px;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            transition: background 0.2s, transform 0.1s;
+        }
+        .btn:disabled { background-color: #ccc; cursor: not-allowed; }
+        .btn:active { transform: scale(0.98); }
+
+        /* Progress Bar */
+        #progress-container {
+            display: none;
+            margin-top: 20px;
+            width: 100%;
+            background-color: #e9ecef;
+            border-radius: 6px;
+            overflow: hidden;
+            height: 24px;
+        }
+        #progress-bar {
+            width: 0%;
+            height: 100%;
+            background-color: #28a745;
+            transition: width 0.2s;
+            text-align: center;
+            color: white;
+            font-size: 12px;
+            line-height: 24px;
+            font-weight: bold;
+        }
+
+        /* Error Message Box */
+        .error-message {
+            background-color: #fee2e2;
+            color: #dc2626;
+            padding: 12px;
+            border-radius: 6px;
+            margin-top: 15px;
+            display: none;
+            border: 1px solid #fecaca;
+        }
+
+        .logout-link { margin-top: 25px; display: block; color: #666; text-decoration: none; font-size: 14px; }
+
+        /* --- SUCCESS MODAL STYLES (The Attention Grabber) --- */
+        #successModal {
+            display: none; /* Hidden by default */
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(0,0,0,0.6); /* Dim background */
+            z-index: 999;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(4px); /* Blur effect */
+        }
+
+        .modal-content {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+            animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            max-width: 90%;
+            width: 320px;
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0.5); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .modal-title { font-size: 24px; color: #333; margin: 20px 0 10px; font-weight: 800; }
+        .modal-text { color: #666; margin-bottom: 25px; }
+
+        /* Animated Checkmark Circle */
+        .checkmark-circle {
+            width: 80px; height: 80px; position: relative;
+            display: inline-block; vertical-align: top;
+        }
+        .checkmark-circle .background {
+            width: 80px; height: 80px;
+            border-radius: 50%;
+            background: #28a745;
+            position: absolute;
+        }
+        .checkmark-circle .checkmark {
+            border-radius: 5px;
+            display: block; position: absolute; opacity: 0;
+        }
+        .checkmark-circle .checkmark.draw:after {
+            animation-delay: 300ms;
+            animation-duration: 1s;
+            animation-timing-function: ease;
+            animation-name: checkmark;
+            transform: scaleX(-1) rotate(135deg);
+            animation-fill-mode: forwards;
+        }
+        .checkmark-circle .checkmark:after {
+            opacity: 1;
+            height: 40px; width: 20px;
+            transform-origin: left top;
+            border-right: 10px solid white;
+            border-top: 10px solid white;
+            border-radius: 2px; 
+            content: ''; left: 16px; top: 40px;
+            position: absolute;
+        }
+
+        @keyframes checkmark {
+            0% { height: 0; width: 0; opacity: 1; }
+            20% { height: 0; width: 20px; opacity: 1; }
+            40% { height: 40px; width: 20px; opacity: 1; }
+            100% { height: 40px; width: 20px; opacity: 1; }
+        }
+
+        .modal-btn {
+            background-color: #28a745;
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 50px;
+            font-size: 16px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(40, 167, 69, 0.4);
+            transition: transform 0.2s;
+        }
+        .modal-btn:hover { transform: scale(1.05); }
+
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>CincoShare</h1>
+        <p>Upload your photos & videos securely.</p>
+
+        <form id="uploadForm">
+            <label class="upload-box" for="fileInput">
+                <span class="upload-icon">📂</span>
+                <span id="fileName">Tap to select files</span>
+            </label>
+            <input type="file" name="file" id="fileInput" multiple accept="image/*,video/*" required>
+
+            <button type="submit" class="btn" id="uploadBtn">Upload Files</button>
+        </form>
+
+        <div id="progress-container">
+            <div id="progress-bar">0%</div>
+        </div>
+
+        <div id="errorMessage" class="error-message"></div>
+
+        <a href="/logout" class="logout-link">Log Out</a>
+    </div>
+
+    <div id="successModal">
+        <div class="modal-content">
+            <div class="checkmark-circle">
+                <div class="background"></div>
+                <div class="checkmark draw"></div>
+            </div>
+            <div class="modal-title">Awesome!</div>
+            <div class="modal-text">Your files have been uploaded securely.</div>
+            <button class="modal-btn" onclick="closeModal()">Upload More</button>
+        </div>
+    </div>
+
+    <script>
+        const form = document.getElementById('uploadForm');
+        const fileInput = document.getElementById('fileInput');
+        const fileNameSpan = document.getElementById('fileName');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const progressContainer = document.getElementById('progress-container');
+        const progressBar = document.getElementById('progress-bar');
+        const errorMessage = document.getElementById('errorMessage');
+        const successModal = document.getElementById('successModal');
+
+        // Update UI when files selected
+        fileInput.addEventListener('change', function() {
+            if (this.files && this.files.length > 0) {
+                fileNameSpan.textContent = this.files.length === 1 
+                    ? this.files[0].name 
+                    : `${this.files.length} files selected`;
+                fileNameSpan.style.fontWeight = "bold";
+                fileNameSpan.style.color = "#007bff";
+            } else {
+                fileNameSpan.textContent = "Tap to select files";
+                fileNameSpan.style.fontWeight = "normal";
+                fileNameSpan.style.color = "#333";
+            }
+        });
+
+        // Handle Upload
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            if (!fileInput.files.length) {
+                showError("Please select at least one file.");
+                return;
+            }
+
+            // Reset States
+            uploadBtn.disabled = true;
+            uploadBtn.textContent = "Uploading...";
+            progressContainer.style.display = 'block';
+            progressBar.style.width = '0%';
+            progressBar.textContent = '0%';
+            errorMessage.style.display = 'none';
+
+            const formData = new FormData();
+            for (let i = 0; i < fileInput.files.length; i++) {
+                formData.append('file', fileInput.files[i]);
+            }
+
+            const xhr = new XMLHttpRequest();
+
+            // Progress Listener
+            xhr.upload.addEventListener('progress', function(e) {
+                if (e.lengthComputable) {
+                    const percent = Math.round((e.loaded / e.total) * 100);
+                    progressBar.style.width = percent + '%';
+                    progressBar.textContent = percent + '%';
+                }
+            });
+
+            // On Complete
+            xhr.onload = function() {
+                if (xhr.status === 200) {
+                    // Success! Show the attention-grabbing modal
+                    successModal.style.display = 'flex'; // This triggers the popup
+                    uploadBtn.textContent = "Upload Files";
+                    uploadBtn.disabled = false;
+                    progressContainer.style.display = 'none'; // Hide progress bar
+                } else {
+                    showError("Upload failed. Server sent: " + xhr.status);
+                    uploadBtn.disabled = false;
+                    uploadBtn.textContent = "Try Again";
+                }
+            };
+
+            xhr.onerror = function() {
+                showError("Network Error. Check your connection.");
+                uploadBtn.disabled = false;
+                uploadBtn.textContent = "Try Again";
+            };
+
+            xhr.open('POST', '/upload', true);
+            xhr.send(formData);
+        });
+
+        function showError(msg) {
+            errorMessage.textContent = msg;
+            errorMessage.style.display = "block";
+        }
+
+        function closeModal() {
+            // Reload page to clear form and reset
+            window.location.reload();
+        }
+    </script>
+</body>
+</html>
