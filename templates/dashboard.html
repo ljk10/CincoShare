@@ -63,10 +63,19 @@
         .btn:disabled { background-color: #ccc; cursor: not-allowed; }
         .btn:active { transform: scale(0.98); }
 
+        /* Status Info */
+        .status-text {
+            margin-top: 15px;
+            font-size: 14px;
+            color: #555;
+            font-weight: 500;
+            min-height: 20px;
+        }
+
         /* Progress Bar */
         #progress-container {
             display: none;
-            margin-top: 20px;
+            margin-top: 10px;
             width: 100%;
             background-color: #e9ecef;
             border-radius: 6px;
@@ -94,20 +103,21 @@
             margin-top: 15px;
             display: none;
             border: 1px solid #fecaca;
+            font-size: 14px;
         }
 
         .logout-link { margin-top: 25px; display: block; color: #666; text-decoration: none; font-size: 14px; }
 
-        /* --- SUCCESS MODAL STYLES (The Attention Grabber) --- */
+        /* --- SUCCESS MODAL STYLES --- */
         #successModal {
-            display: none; /* Hidden by default */
+            display: none;
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
-            background-color: rgba(0,0,0,0.6); /* Dim background */
+            background-color: rgba(0,0,0,0.6);
             z-index: 999;
             justify-content: center;
             align-items: center;
-            backdrop-filter: blur(4px); /* Blur effect */
+            backdrop-filter: blur(4px);
         }
 
         .modal-content {
@@ -129,7 +139,7 @@
         .modal-title { font-size: 24px; color: #333; margin: 20px 0 10px; font-weight: 800; }
         .modal-text { color: #666; margin-bottom: 25px; }
 
-        /* Animated Checkmark Circle */
+        /* Animated Checkmark */
         .checkmark-circle {
             width: 80px; height: 80px; position: relative;
             display: inline-block; vertical-align: top;
@@ -201,6 +211,8 @@
             <button type="submit" class="btn" id="uploadBtn">Upload Files</button>
         </form>
 
+        <div class="status-text" id="statusText"></div>
+
         <div id="progress-container">
             <div id="progress-bar">0%</div>
         </div>
@@ -217,7 +229,7 @@
                 <div class="checkmark draw"></div>
             </div>
             <div class="modal-title">Awesome!</div>
-            <div class="modal-text">Your files have been uploaded securely.</div>
+            <div class="modal-text" id="modalText">All files uploaded successfully.</div>
             <button class="modal-btn" onclick="closeModal()">Upload More</button>
         </div>
     </div>
@@ -229,8 +241,10 @@
         const uploadBtn = document.getElementById('uploadBtn');
         const progressContainer = document.getElementById('progress-container');
         const progressBar = document.getElementById('progress-bar');
+        const statusText = document.getElementById('statusText');
         const errorMessage = document.getElementById('errorMessage');
         const successModal = document.getElementById('successModal');
+        const modalText = document.getElementById('modalText');
 
         // Update UI when files selected
         fileInput.addEventListener('change', function() {
@@ -247,8 +261,8 @@
             }
         });
 
-        // Handle Upload
-        form.addEventListener('submit', function(e) {
+        // --- NEW ONE-BY-ONE UPLOAD LOGIC ---
+        form.addEventListener('submit', async function(e) {
             e.preventDefault();
             
             if (!fileInput.files.length) {
@@ -256,54 +270,85 @@
                 return;
             }
 
-            // Reset States
+            // Reset UI
             uploadBtn.disabled = true;
-            uploadBtn.textContent = "Uploading...";
-            progressContainer.style.display = 'block';
-            progressBar.style.width = '0%';
-            progressBar.textContent = '0%';
             errorMessage.style.display = 'none';
+            progressContainer.style.display = 'block';
+            
+            const files = Array.from(fileInput.files);
+            let uploadedCount = 0;
+            let errorCount = 0;
 
-            const formData = new FormData();
-            for (let i = 0; i < fileInput.files.length; i++) {
-                formData.append('file', fileInput.files[i]);
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                
+                // Update Status: "Uploading 1 of 15: filename..."
+                statusText.textContent = `Uploading ${i + 1} of ${files.length}: ${file.name}`;
+                uploadBtn.textContent = `Uploading (${i + 1}/${files.length})...`;
+                progressBar.style.width = '0%';
+                progressBar.textContent = '0%';
+                progressBar.className = ''; // Reset color
+                progressBar.style.backgroundColor = '#007bff';
+
+                try {
+                    await uploadSingleFile(file);
+                    uploadedCount++;
+                } catch (err) {
+                    console.error(err);
+                    errorCount++;
+                    // Show small error but continue
+                    statusText.textContent = `Error uploading ${file.name}. Moving to next...`;
+                    statusText.style.color = "red";
+                }
             }
 
-            const xhr = new XMLHttpRequest();
+            // All Done
+            progressContainer.style.display = 'none';
+            statusText.textContent = "";
+            
+            if (uploadedCount > 0) {
+                // Show Success Modal
+                modalText.textContent = `${uploadedCount} files uploaded successfully. ` + (errorCount > 0 ? `${errorCount} failed.` : "");
+                successModal.style.display = 'flex';
+            } else {
+                showError("All uploads failed. Check your connection or file size.");
+            }
 
-            // Progress Listener
-            xhr.upload.addEventListener('progress', function(e) {
-                if (e.lengthComputable) {
-                    const percent = Math.round((e.loaded / e.total) * 100);
-                    progressBar.style.width = percent + '%';
-                    progressBar.textContent = percent + '%';
-                }
-            });
-
-            // On Complete
-            xhr.onload = function() {
-                if (xhr.status === 200) {
-                    // Success! Show the attention-grabbing modal
-                    successModal.style.display = 'flex'; // This triggers the popup
-                    uploadBtn.textContent = "Upload Files";
-                    uploadBtn.disabled = false;
-                    progressContainer.style.display = 'none'; // Hide progress bar
-                } else {
-                    showError("Upload failed. Server sent: " + xhr.status);
-                    uploadBtn.disabled = false;
-                    uploadBtn.textContent = "Try Again";
-                }
-            };
-
-            xhr.onerror = function() {
-                showError("Network Error. Check your connection.");
-                uploadBtn.disabled = false;
-                uploadBtn.textContent = "Try Again";
-            };
-
-            xhr.open('POST', '/upload', true);
-            xhr.send(formData);
+            uploadBtn.textContent = "Upload Files";
+            uploadBtn.disabled = false;
         });
+
+        function uploadSingleFile(file) {
+            return new Promise((resolve, reject) => {
+                const formData = new FormData();
+                formData.append('file', file);
+
+                const xhr = new XMLHttpRequest();
+
+                xhr.upload.addEventListener('progress', function(e) {
+                    if (e.lengthComputable) {
+                        const percent = Math.round((e.loaded / e.total) * 100);
+                        progressBar.style.width = percent + '%';
+                        progressBar.textContent = percent + '%';
+                    }
+                });
+
+                xhr.onload = function() {
+                    if (xhr.status === 200) {
+                        resolve(); // Success
+                    } else {
+                        reject("Server Error: " + xhr.status);
+                    }
+                };
+
+                xhr.onerror = function() {
+                    reject("Network Error");
+                };
+
+                xhr.open('POST', '/upload', true);
+                xhr.send(formData);
+            });
+        }
 
         function showError(msg) {
             errorMessage.textContent = msg;
@@ -311,7 +356,6 @@
         }
 
         function closeModal() {
-            // Reload page to clear form and reset
             window.location.reload();
         }
     </script>
